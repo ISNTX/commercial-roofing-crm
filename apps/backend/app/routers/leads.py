@@ -2,14 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from postgrest.exceptions import APIError
 from supabase import Client
 
+from app.core.auth import require_user
 from app.core.supabase import get_supabase
 
-router = APIRouter(prefix="/leads", tags=["leads"])
+router = APIRouter(prefix="/leads", tags=["leads"], dependencies=[Depends(require_user)])
 
 
 @router.get("")
 def list_leads(
     county: str | None = Query(None, description="County name filter"),
+    city: str | None = Query(None, description="City name filter"),
     project_type: str | None = Query(None),
     status: str | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
@@ -17,7 +19,7 @@ def list_leads(
     supabase: Client = Depends(get_supabase),
 ):
     query = supabase.table("leads").select(
-        "*, counties(name)", count="exact"
+        "*, counties(name), cities(name)", count="exact"
     )
 
     if project_type:
@@ -31,6 +33,11 @@ def list_leads(
         if not county_row.data:
             return {"items": [], "total": 0, "limit": limit, "offset": offset}
         query = query.eq("county_id", county_row.data[0]["id"])
+    if city:
+        city_row = supabase.table("cities").select("id").eq("name", city).limit(1).execute()
+        if not city_row.data:
+            return {"items": [], "total": 0, "limit": limit, "offset": offset}
+        query = query.eq("city_id", city_row.data[0]["id"])
 
     query = query.order("scraped_at", desc=True).range(offset, offset + limit - 1)
 
@@ -51,7 +58,9 @@ def list_leads(
 def get_lead(lead_id: str, supabase: Client = Depends(get_supabase)):
     result = (
         supabase.table("leads")
-        .select("*, counties(name), contractors(name, license_number, phone, email)")
+        .select(
+            "*, counties(name), cities(name), contractors(name, license_number, phone, email)"
+        )
         .eq("id", lead_id)
         .limit(1)
         .execute()

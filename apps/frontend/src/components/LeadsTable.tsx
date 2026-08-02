@@ -9,6 +9,10 @@ import StatusBadge from "./StatusBadge";
 
 const columns: ColumnDef<Lead>[] = [
   {
+    header: "City",
+    accessorFn: (row) => row.cities?.name ?? "—",
+  },
+  {
     header: "County",
     accessorFn: (row) => row.counties?.name ?? "—",
   },

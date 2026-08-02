@@ -2,43 +2,44 @@ import pLimit from "p-limit";
 import { env } from "./lib/env.js";
 import { getSupabase } from "./lib/supabaseClient.js";
 import { sendToOutreachEngine } from "./lib/outreach.js";
-import { getAllCounties, getCountyScraper } from "./counties/registry.js";
+import { getCityScraper } from "./cities/registry.js";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function getCountyIdMap(supabase) {
-  const { data, error } = await supabase.from("counties").select("id, name");
+async function getCities(supabase) {
+  const { data, error } = await supabase.from("cities").select("id, name, county_id");
   if (error) throw error;
-  return new Map(data.map((c) => [c.name, c.id]));
+  return data;
 }
 
-async function scrapeCounty(supabase, countyName, countyId) {
+async function scrapeCity(supabase, city) {
   const { data: run, error: runError } = await supabase
     .from("scrape_runs")
-    .insert({ county_id: countyId, status: "running" })
+    .insert({ city_id: city.id, county_id: city.county_id, status: "running" })
     .select()
     .single();
   if (runError) throw runError;
 
   try {
-    const scraper = getCountyScraper(countyName);
+    const scraper = getCityScraper(city.name);
     const rawLeads = await scraper();
 
     let leadsFound = 0;
     for (const raw of rawLeads) {
       const { error: leadError } = await supabase.from("leads").insert({
-        county_id: countyId,
-        source: `scraper:${countyName}`,
+        city_id: city.id,
+        county_id: city.county_id,
+        source: `scraper:${city.name}`,
         ...raw,
       });
       if (leadError) {
-        console.error(`failed to insert lead for ${countyName}:`, leadError);
+        console.error(`failed to insert lead for ${city.name}:`, leadError);
         continue;
       }
       leadsFound += 1;
-      await sendToOutreachEngine({ ...raw, county: countyName });
+      await sendToOutreachEngine({ ...raw, city: city.name });
     }
 
     await supabase
@@ -50,7 +51,7 @@ async function scrapeCounty(supabase, countyName, countyId) {
       })
       .eq("id", run.id);
 
-    return { county: countyName, leadsFound };
+    return { city: city.name, leadsFound };
   } catch (err) {
     await supabase
       .from("scrape_runs")
@@ -60,40 +61,31 @@ async function scrapeCounty(supabase, countyName, countyId) {
         error: String(err?.message || err),
       })
       .eq("id", run.id);
-    return { county: countyName, error: String(err?.message || err) };
+    return { city: city.name, error: String(err?.message || err) };
   }
 }
 
 export async function runDailyScrape() {
   const supabase = getSupabase();
-  const counties = getAllCounties();
-  const countyIds = await getCountyIdMap(supabase);
+  const cities = await getCities(supabase);
   const limit = pLimit(env.scrapeConcurrency);
 
-  const results = [];
-  for (const countyName of counties) {
-    const countyId = countyIds.get(countyName);
-    if (!countyId) {
-      console.warn(`no counties row for "${countyName}" — skipping`);
-      continue;
-    }
-    results.push(
-      limit(async () => {
-        const result = await scrapeCounty(supabase, countyName, countyId);
-        await sleep(env.scrapeDelayMs);
-        return result;
-      })
-    );
-  }
+  const results = cities.map((city) =>
+    limit(async () => {
+      const result = await scrapeCity(supabase, city);
+      await sleep(env.scrapeDelayMs);
+      return result;
+    })
+  );
 
   const settled = await Promise.all(results);
   const totalLeads = settled.reduce((sum, r) => sum + (r.leadsFound || 0), 0);
   const failures = settled.filter((r) => r.error);
 
   console.log(
-    `scrape complete: ${settled.length} counties, ${totalLeads} leads, ${failures.length} failures`
+    `scrape complete: ${settled.length} cities, ${totalLeads} leads, ${failures.length} failures`
   );
-  return { counties: settled.length, totalLeads, failures };
+  return { cities: settled.length, totalLeads, failures };
 }
 
 // Allow `npm run scrape` to run this directly.

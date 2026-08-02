@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends
 from supabase import Client
 
+from app.core.auth import require_user
 from app.core.supabase import get_supabase
 
-router = APIRouter(prefix="/counties", tags=["counties"])
+router = APIRouter(prefix="/counties", tags=["counties"], dependencies=[Depends(require_user)])
 
 
 @router.get("")

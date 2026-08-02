@@ -83,6 +83,9 @@ is unset, so the scraper runs standalone during development.
 
 ## Not done yet — needs your confirmation before touching anything live
 
+See **[DEPLOY.md](./DEPLOY.md)** for the step-by-step runbook (copy-paste
+env var tables included).
+
 - **Railway services**: not connected. Three services (frontend, backend,
   scraper), each pointed at its `apps/<name>` subdirectory, env vars set
   from `.env.example` (service-role key and JWT-related keys come from the

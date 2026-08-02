@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import counties, leads
+from app.routers import cities, counties, leads
 
 app = FastAPI(title=settings.app_name)
 
@@ -15,6 +15,7 @@ app.add_middleware(
 
 app.include_router(leads.router)
 app.include_router(counties.router)
+app.include_router(cities.router)
 
 
 @app.get("/health")

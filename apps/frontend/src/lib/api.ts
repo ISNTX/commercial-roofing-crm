@@ -12,6 +12,8 @@ export interface Lead {
   id: string;
   county_id: string | null;
   counties: { name: string } | null;
+  city_id: string | null;
+  cities: { name: string } | null;
   project_type: string | null;
   project_value_estimate: number | null;
   address: string | null;
@@ -35,8 +37,16 @@ export interface County {
   fips_code: string | null;
 }
 
+export interface City {
+  id: string;
+  name: string;
+  county_id: string;
+  counties: { name: string } | null;
+}
+
 export interface LeadsFilters {
   county?: string;
+  city?: string;
   project_type?: string;
   status?: string;
   limit?: number;
@@ -58,5 +68,11 @@ export async function fetchLeads(filters: LeadsFilters = {}): Promise<LeadsRespo
 export async function fetchCounties(): Promise<County[]> {
   const res = await fetch(`${API_URL}/counties`, { headers: await authHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch counties: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchCities(): Promise<City[]> {
+  const res = await fetch(`${API_URL}/cities`, { headers: await authHeaders() });
+  if (!res.ok) throw new Error(`Failed to fetch cities: ${res.status}`);
   return res.json();
 }

@@ -1,24 +1,30 @@
-import type { County } from "@/lib/api";
+import type { City, County } from "@/lib/api";
 
 const PROJECT_TYPES = ["reroof", "new_construction", "repair"];
 const STATUSES = ["new", "contacted", "qualified", "disqualified"];
 
 interface Props {
   counties: County[];
+  cities: City[];
   county: string;
+  city: string;
   projectType: string;
   status: string;
   onCountyChange: (value: string) => void;
+  onCityChange: (value: string) => void;
   onProjectTypeChange: (value: string) => void;
   onStatusChange: (value: string) => void;
 }
 
 export default function LeadsFilters({
   counties,
+  cities,
   county,
+  city,
   projectType,
   status,
   onCountyChange,
+  onCityChange,
   onProjectTypeChange,
   onStatusChange,
 }: Props) {
@@ -31,6 +37,19 @@ export default function LeadsFilters({
       >
         <option value="">All counties</option>
         {counties.map((c) => (
+          <option key={c.id} value={c.name}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className="rounded-md border bg-white px-3 py-2 text-sm"
+        value={city}
+        onChange={(e) => onCityChange(e.target.value)}
+      >
+        <option value="">All cities</option>
+        {cities.map((c) => (
           <option key={c.id} value={c.name}>
             {c.name}
           </option>

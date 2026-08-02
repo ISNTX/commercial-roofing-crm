@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { fetchCounties, fetchLeads, type County, type Lead } from "@/lib/api";
+import {
+  fetchCities,
+  fetchCounties,
+  fetchLeads,
+  type City,
+  type County,
+  type Lead,
+} from "@/lib/api";
 import LeadsFilters from "@/components/LeadsFilters";
 import LeadsTable from "@/components/LeadsTable";
 
@@ -7,18 +14,21 @@ const PAGE_SIZE = 25;
 
 export default function LeadsDashboard() {
   const [counties, setCounties] = useState<County[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [county, setCounty] = useState("");
+  const [city, setCity] = useState("");
   const [projectType, setProjectType] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
     fetchCounties().then(setCounties).catch(() => setCounties([]));
+    fetchCities().then(setCities).catch(() => setCities([]));
   }, []);
 
   useEffect(() => {
@@ -26,6 +36,7 @@ export default function LeadsDashboard() {
     setError(null);
     fetchLeads({
       county: county || undefined,
+      city: city || undefined,
       project_type: projectType || undefined,
       status: status || undefined,
       limit: PAGE_SIZE,
@@ -37,7 +48,7 @@ export default function LeadsDashboard() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [county, projectType, status, page]);
+  }, [county, city, projectType, status, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -45,11 +56,17 @@ export default function LeadsDashboard() {
     <div>
       <LeadsFilters
         counties={counties}
+        cities={cities}
         county={county}
+        city={city}
         projectType={projectType}
         status={status}
         onCountyChange={(v) => {
           setCounty(v);
+          setPage(0);
+        }}
+        onCityChange={(v) => {
+          setCity(v);
           setPage(0);
         }}
         onProjectTypeChange={(v) => {

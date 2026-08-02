@@ -1,4 +1,12 @@
+import { supabase } from "./supabaseClient";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+async function authHeaders(): Promise<HeadersInit> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export interface Lead {
   id: string;
@@ -40,13 +48,15 @@ export async function fetchLeads(filters: LeadsFilters = {}): Promise<LeadsRespo
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== "") params.set(key, String(value));
   }
-  const res = await fetch(`${API_URL}/leads?${params.toString()}`);
+  const res = await fetch(`${API_URL}/leads?${params.toString()}`, {
+    headers: await authHeaders(),
+  });
   if (!res.ok) throw new Error(`Failed to fetch leads: ${res.status}`);
   return res.json();
 }
 
 export async function fetchCounties(): Promise<County[]> {
-  const res = await fetch(`${API_URL}/counties`);
+  const res = await fetch(`${API_URL}/counties`, { headers: await authHeaders() });
   if (!res.ok) throw new Error(`Failed to fetch counties: ${res.status}`);
   return res.json();
 }

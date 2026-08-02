@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
 
     supabase_url: str = ""
+    supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
 
     outreach_engine_url: str = ""

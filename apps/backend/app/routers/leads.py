@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from postgrest.exceptions import APIError
 from supabase import Client
 
+from app.core.auth import require_user
 from app.core.supabase import get_supabase
 
-router = APIRouter(prefix="/leads", tags=["leads"])
+router = APIRouter(prefix="/leads", tags=["leads"], dependencies=[Depends(require_user)])
 
 
 @router.get("")

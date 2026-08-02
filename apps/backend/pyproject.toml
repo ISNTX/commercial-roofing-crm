@@ -1,0 +1,7 @@
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# B008: FastAPI's `Depends(...)` as a default argument is the idiomatic
+# dependency-injection pattern, not the footgun this rule targets.
+ignore = ["B008"]

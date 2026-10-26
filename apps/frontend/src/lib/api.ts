@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Trailing slash stripped so "https://api.example.com/" doesn't produce "//leads".
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 async function authHeaders(): Promise<HeadersInit> {
   const { data } = await supabase.auth.getSession();

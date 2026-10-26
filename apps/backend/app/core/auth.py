@@ -18,11 +18,16 @@ def require_user(authorization: str | None = Header(None)):
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
 
+    if not settings.supabase_url or not settings.supabase_anon_key:
+        raise HTTPException(status_code=503, detail="Auth is not configured on the server")
+
     token = authorization.split(" ", 1)[1]
     try:
         result = get_auth_client().auth.get_user(token)
     except AuthApiError as exc:
         raise HTTPException(status_code=401, detail="Invalid or expired token") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Could not reach Supabase Auth") from exc
 
     if not result or not result.user:
         raise HTTPException(status_code=401, detail="Invalid or expired token")

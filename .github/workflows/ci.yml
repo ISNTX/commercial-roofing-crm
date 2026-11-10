@@ -33,6 +33,7 @@ jobs:
           node-version: "20"
       - run: npm install
       - run: node --check src/server.js
+      - run: npm test
 
   frontend:
     runs-on: ubuntu-latest

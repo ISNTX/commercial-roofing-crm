@@ -41,9 +41,8 @@ npm install
 npm run dev        # /health + /run server, auto-restart on change
 npm run scrape      # run one scrape pass directly (src/run.js), no server
 node --check src/server.js   # syntax check (matches CI)
+npm test            # node:test suite with an in-memory Supabase fake (matches CI)
 ```
-
-No test suite exists yet.
 
 ### Frontend (`apps/frontend`, Vite + React + TS)
 
@@ -113,6 +112,18 @@ the expected lead-object shape, not a live integration. The daily run
 `cities` table (not a hardcoded array) and fans out with bounded
 concurrency (`SCRAPE_CONCURRENCY`, `SCRAPE_DELAY_MS`), recording one
 `scrape_runs` row per city per run.
+
+**Self-healing run loop** (`run.js`, `server.js`): each run first marks
+`scrape_runs` stuck in `running` for over 2h as failed (crash recovery);
+each scraper gets retries with backoff and a timeout
+(`SCRAPE_RETRIES`, `SCRAPE_TIMEOUT_MS`); a scraper shared by several
+cities runs once per run and its leads are split by `city`; leads are
+inserted through a column whitelist (unknown fields go to
+`raw_data.extra`) and de-duplicated by normalized address + project type
+over 90 days; outreach failures never fail a run. `/run` fails closed
+without `SCRAPER_TRIGGER_SECRET`. A watchdog starts a run itself if none
+has started for `SCRAPE_WATCHDOG_HOURS` (default 26, 0 = off), and
+`/health` reports `degraded` with the reason when runs stall.
 
 **Daily trigger**: Supabase `pg_cron` + `pg_net` (migration
 `20260802000200_daily_scrape_cron.sql`) is meant to POST to the scraper's
